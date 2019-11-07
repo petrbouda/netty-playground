@@ -3,8 +3,9 @@ package pbouda.websocket.client;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.*;
 import io.netty.channel.epoll.EpollEventLoopGroup;
-import io.netty.channel.epoll.EpollSocketChannel;
+import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
+import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.codec.http.DefaultHttpHeaders;
 import io.netty.handler.codec.http.HttpClientCodec;
 import io.netty.handler.codec.http.HttpObjectAggregator;
@@ -32,7 +33,8 @@ public class Client implements AutoCloseable {
     }
 
     public Client() {
-        this(new EpollEventLoopGroup(), 1);
+        this(new NioEventLoopGroup(), 1);
+//        this(new EpollEventLoopGroup(), 1);
     }
 
     public Client(EventLoopGroup group, int id) {
@@ -48,7 +50,8 @@ public class Client implements AutoCloseable {
 
         Bootstrap bootstrap = new Bootstrap()
                 .group(group)
-                .channel(EpollSocketChannel.class)
+//                .channel(EpollSocketChannel.class)
+                .channel(NioSocketChannel.class)
                 .handler(new CustomClientInitializer(wsHandshakeHandler));
 
         ChannelFuture channelFuture = bootstrap.connect(URI.getHost(), URI.getPort()).sync()

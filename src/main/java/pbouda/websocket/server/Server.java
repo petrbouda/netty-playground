@@ -4,12 +4,12 @@ import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.EventLoopGroup;
-import io.netty.channel.epoll.EpollEventLoopGroup;
 import io.netty.channel.epoll.EpollServerSocketChannel;
 import io.netty.channel.group.ChannelGroup;
 import io.netty.channel.group.DefaultChannelGroup;
+import io.netty.channel.nio.NioEventLoopGroup;
+import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.util.concurrent.Future;
-import io.netty.util.concurrent.GenericFutureListener;
 import io.netty.util.concurrent.ImmediateEventExecutor;
 
 import java.lang.management.ManagementFactory;
@@ -26,11 +26,14 @@ public class Server implements AutoCloseable {
 
     public Server() {
         this.channelGroup = new DefaultChannelGroup(ImmediateEventExecutor.INSTANCE);
-        this.bossEventLoopGroup = new EpollEventLoopGroup(1);
-        this.workerEventLoopGroup = new EpollEventLoopGroup();
+        this.bossEventLoopGroup = new NioEventLoopGroup(1);
+        // this.bossEventLoopGroup = new EpollEventLoopGroup(1);
+        this.workerEventLoopGroup = new NioEventLoopGroup();
+        // this.workerEventLoopGroup = new EpollEventLoopGroup();
 
         this.bootstrap = new ServerBootstrap()
-                .channel(EpollServerSocketChannel.class)
+                .channel(NioServerSocketChannel.class)
+//                .channel(EpollServerSocketChannel.class)
                 .group(bossEventLoopGroup, workerEventLoopGroup)
                 .localAddress(8080)
                 // .handler(new LoggingHandler(LogLevel.INFO))
