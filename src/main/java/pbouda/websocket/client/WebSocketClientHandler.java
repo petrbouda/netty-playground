@@ -4,8 +4,12 @@ import io.netty.channel.*;
 import io.netty.handler.codec.http.FullHttpResponse;
 import io.netty.handler.codec.http.websocketx.*;
 import io.netty.util.CharsetUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class WebSocketClientHandler extends SimpleChannelInboundHandler<Object> {
+
+    private static final Logger LOG = LoggerFactory.getLogger(WebSocketClientHandler.class);
 
     private final WebSocketClientHandshaker handshaker;
     private final int id;
@@ -32,7 +36,7 @@ public class WebSocketClientHandler extends SimpleChannelInboundHandler<Object> 
 
     @Override
     public void channelInactive(ChannelHandlerContext ctx) {
-        System.out.println(id + " - WebSocket Client disconnected!");
+        LOG.info(id + " - WebSocket Client disconnected!");
     }
 
     @Override
@@ -41,10 +45,10 @@ public class WebSocketClientHandler extends SimpleChannelInboundHandler<Object> 
         if (!handshaker.isHandshakeComplete()) {
             try {
                 handshaker.finishHandshake(ch, (FullHttpResponse) msg);
-                System.out.println(id + " - WebSocket Client connected!");
+                LOG.info(id + " - WebSocket Client connected!");
                 handshakeFuture.setSuccess();
             } catch (WebSocketHandshakeException e) {
-                System.out.println(id + " - WebSocket Client failed to connect");
+                LOG.info(id + " - WebSocket Client failed to connect");
                 handshakeFuture.setFailure(e);
             }
             return;
@@ -59,17 +63,12 @@ public class WebSocketClientHandler extends SimpleChannelInboundHandler<Object> 
 
         WebSocketFrame frame = (WebSocketFrame) msg;
         if (frame instanceof TextWebSocketFrame) {
-            try {
-                Thread.sleep(30_000);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
             TextWebSocketFrame textFrame = (TextWebSocketFrame) frame;
-            System.out.println(id + " - WebSocket Client received message: " + textFrame.text());
+            LOG.info(id + " - WebSocket Client received message: " + textFrame.text());
         } else if (frame instanceof PongWebSocketFrame) {
-            System.out.println(id + " - WebSocket Client received pong");
+            LOG.info(id + " - WebSocket Client received pong");
         } else if (frame instanceof CloseWebSocketFrame) {
-            System.out.println(id + " - WebSocket Client received closing");
+            LOG.info(id + " - WebSocket Client received closing");
             ch.close();
         }
     }

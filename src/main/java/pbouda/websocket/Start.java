@@ -10,7 +10,7 @@ import io.netty.util.CharsetUtil;
 import pbouda.websocket.client.Client;
 import pbouda.websocket.server.Server;
 
-public class SingleMessage {
+public class Start {
 
     private static final Lorem LOREM = LoremIpsum.getInstance();
 
@@ -42,7 +42,7 @@ public class SingleMessage {
 
 
         while (true) {
-            Thread.sleep(20);
+            Thread.sleep(500);
 
             ByteBuf buffer = PooledByteBufAllocator.DEFAULT.buffer();
 
