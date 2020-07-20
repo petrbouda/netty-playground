@@ -21,7 +21,7 @@ public class Server implements AutoCloseable {
 
     public Server() {
         this.bossEventLoopGroup = new EpollEventLoopGroup(1);
-        this.workerEventLoopGroup = new EpollEventLoopGroup();
+        this.workerEventLoopGroup = new EpollEventLoopGroup(1);
 
         this.bootstrap = new ServerBootstrap()
                 .channel(EpollServerSocketChannel.class)
@@ -33,6 +33,7 @@ public class Server implements AutoCloseable {
                         connectedChannel = channel;
 
                         ChannelPipeline pipeline = channel.pipeline();
+
                         pipeline.addLast(new FirstInboundHandler());
                         pipeline.addLast(new FirstOutboundHandler());
 

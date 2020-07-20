@@ -3,12 +3,14 @@ package pbouda.websocket.client;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.*;
 import io.netty.channel.epoll.EpollEventLoopGroup;
+import io.netty.channel.epoll.EpollSocketChannel;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.codec.http.DefaultHttpHeaders;
 import io.netty.handler.codec.http.HttpClientCodec;
 import io.netty.handler.codec.http.HttpObjectAggregator;
+import io.netty.handler.codec.http.websocketx.WebSocketClientHandshaker;
 import io.netty.handler.codec.http.websocketx.WebSocketClientHandshakerFactory;
 import io.netty.handler.codec.http.websocketx.WebSocketVersion;
 import io.netty.handler.codec.http.websocketx.extensions.compression.WebSocketClientCompressionHandler;
@@ -33,8 +35,8 @@ public class Client implements AutoCloseable {
     }
 
     public Client() {
-        this(new NioEventLoopGroup(), 1);
-//        this(new EpollEventLoopGroup(), 1);
+//        this(new NioEventLoopGroup(), 1);
+        this(new EpollEventLoopGroup(), 1);
     }
 
     public Client(EventLoopGroup group, int id) {
@@ -46,19 +48,26 @@ public class Client implements AutoCloseable {
         var handshaker = WebSocketClientHandshakerFactory.newHandshaker(
                 URI, WebSocketVersion.V13, null, true, new DefaultHttpHeaders());
 
-        var wsHandshakeHandler = new WebSocketClientHandler(handshaker, id);
+        WebSocketClientHandler clientHandler =
+                new WebSocketClientHandler(id);
+
+        WebSocketHandshakeHandler handshakeHandler =
+                new WebSocketHandshakeHandler(handshaker, id);
 
         Bootstrap bootstrap = new Bootstrap()
                 .group(group)
-//                .channel(EpollSocketChannel.class)
-                .channel(NioSocketChannel.class)
-                .handler(new CustomClientInitializer(wsHandshakeHandler));
+                .channel(EpollSocketChannel.class)
+//                .channel(NioSocketChannel.class)
+                .handler(new CustomClientInitializer(clientHandler, handshakeHandler));
 
         ChannelFuture channelFuture = bootstrap.connect(URI.getHost(), URI.getPort()).sync()
                 .addListener(f -> System.out.println("Client connected: ID: " + id))
                 .syncUninterruptibly();
 
-        wsHandshakeHandler.handshakeFuture().syncUninterruptibly();
+        handshakeHandler.handshakeFuture().syncUninterruptibly()
+                .addListener(f -> {
+                    System.out.println();
+                });
 
         return channelFuture.channel();
     }
@@ -72,9 +81,14 @@ public class Client implements AutoCloseable {
     private static class CustomClientInitializer extends ChannelInitializer<SocketChannel> {
 
         private final ChannelHandler handler;
+        private final WebSocketHandshakeHandler handshakeHandler;
 
-        private CustomClientInitializer(ChannelHandler handler) {
-            this.handler = handler;
+        private CustomClientInitializer(
+                WebSocketClientHandler clientHandler,
+                WebSocketHandshakeHandler handshakeHandler) {
+
+            this.handler = clientHandler;
+            this.handshakeHandler = handshakeHandler;
         }
 
         @Override
@@ -83,6 +97,9 @@ public class Client implements AutoCloseable {
                     .addLast(new HttpClientCodec())
                     .addLast(new HttpObjectAggregator(8192))
                     .addLast(WebSocketClientCompressionHandler.INSTANCE)
+                    .addLast(handshakeHandler)
+                    .addLast(new InfrastructureHandler())
+                    .addLast(new ResponseHandler())
                     .addLast(handler);
         }
     }

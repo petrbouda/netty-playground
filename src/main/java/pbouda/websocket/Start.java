@@ -7,6 +7,8 @@ import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.channel.group.ChannelGroup;
 import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
 import io.netty.util.CharsetUtil;
+import io.netty.util.internal.logging.InternalLoggerFactory;
+import io.netty.util.internal.logging.Slf4JLoggerFactory;
 import pbouda.websocket.client.Client;
 import pbouda.websocket.server.Server;
 
@@ -15,6 +17,10 @@ public class Start {
     private static final Lorem LOREM = LoremIpsum.getInstance();
 
     public static void main(String[] args) throws InterruptedException {
+        InternalLoggerFactory.setDefaultFactory(Slf4JLoggerFactory.INSTANCE);
+
+//        Jfr.start("jdk.SocketRead", "jdk.SocketWrite");
+
         // ------------------
         //  Websocket Server
         // ------------------
@@ -31,9 +37,11 @@ public class Start {
         var client = new Client();
         Runtime.getRuntime().addShutdownHook(new Thread(client::close));
 
-        client.connect()
-                .closeFuture()
-                .addListener(v -> System.out.println("Websocket Client closed"));
+//        for (int i = 0; i < 50000; i++) {
+            client.connect()
+                    .closeFuture()
+                    .addListener(v -> System.out.println("Websocket Client closed"));
+//        }
 
         // -----------------
         // Sending Message
@@ -42,14 +50,15 @@ public class Start {
 
 
         while (true) {
-            Thread.sleep(500);
+            Thread.sleep(200);
 
             ByteBuf buffer = PooledByteBufAllocator.DEFAULT.buffer();
 
-            String message = LOREM.getParagraphs(1, 5);
+            String message = LOREM.getName();
             buffer.writeCharSequence(message, CharsetUtil.UTF_8);
 
-            channelGroup.write(new TextWebSocketFrame(buffer))
+//            channelGroup.writeAndFlush(new TextWebSocketFrame(buffer))
+            channelGroup.writeAndFlush(message)
                     .addListener(future -> {
                         if (future.isSuccess()) {
 //                            System.out.println("Message sent!");
@@ -59,7 +68,6 @@ public class Start {
                     });
         }
         // Stop and don't kill the clients.
-        // Thread.currentThread().join();
     }
 
 }

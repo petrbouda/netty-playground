@@ -1,9 +1,8 @@
 package pbouda.websocket.server;
 
 import io.netty.bootstrap.ServerBootstrap;
-import io.netty.channel.Channel;
-import io.netty.channel.ChannelFuture;
-import io.netty.channel.EventLoopGroup;
+import io.netty.channel.*;
+import io.netty.channel.epoll.EpollEventLoopGroup;
 import io.netty.channel.epoll.EpollServerSocketChannel;
 import io.netty.channel.group.ChannelGroup;
 import io.netty.channel.group.DefaultChannelGroup;
@@ -24,18 +23,24 @@ public class Server implements AutoCloseable {
     private final EventLoopGroup bossEventLoopGroup;
     private final EventLoopGroup workerEventLoopGroup;
 
+    public static void main(String[] args) {
+        var server = new Server();
+        Runtime.getRuntime().addShutdownHook(new Thread(server::close));
+
+        server.start()
+                .closeFuture()
+                .addListener(f -> System.out.println("Websocket Server closed"));
+    }
+
     public Server() {
         this.channelGroup = new DefaultChannelGroup(ImmediateEventExecutor.INSTANCE);
-        this.bossEventLoopGroup = new NioEventLoopGroup(1);
-        // this.bossEventLoopGroup = new EpollEventLoopGroup(1);
-        this.workerEventLoopGroup = new NioEventLoopGroup();
-        // this.workerEventLoopGroup = new EpollEventLoopGroup();
+         this.bossEventLoopGroup = new EpollEventLoopGroup(1);
+         this.workerEventLoopGroup = new EpollEventLoopGroup();
 
         this.bootstrap = new ServerBootstrap()
-                .channel(NioServerSocketChannel.class)
-//                .channel(EpollServerSocketChannel.class)
+                .channel(EpollServerSocketChannel.class)
                 .group(bossEventLoopGroup, workerEventLoopGroup)
-                .localAddress(8080)
+                .localAddress(PORT)
                 // .handler(new LoggingHandler(LogLevel.INFO))
                 // .childOption(ChannelOption.SO_SNDBUF, 1024 * 1024)
                 // .childOption(ChannelOption.SO_RCVBUF, 32 * 1024)
@@ -57,9 +62,10 @@ public class Server implements AutoCloseable {
 
     public Channel start() {
         ChannelFuture serverBindFuture = bootstrap.bind();
-        serverBindFuture.addListener(f ->
-                System.out.printf("PID %s - Broadcaster started on port '%s' and path '%s'",
-                        ManagementFactory.getRuntimeMXBean().getPid(), PORT, WS_PATH));
+        serverBindFuture.addListener(f -> {
+            System.out.printf("PID %s - Broadcaster started on port '%s' and path '%s'",
+                    ManagementFactory.getRuntimeMXBean().getPid(), PORT, WS_PATH);
+        });
 
         // Wait for the binding is completed
         serverBindFuture.syncUninterruptibly();

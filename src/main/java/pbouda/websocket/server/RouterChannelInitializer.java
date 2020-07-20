@@ -7,6 +7,17 @@ import io.netty.channel.socket.SocketChannel;
 import io.netty.handler.codec.http.HttpObjectAggregator;
 import io.netty.handler.codec.http.HttpServerCodec;
 import io.netty.handler.codec.http.websocketx.WebSocketServerProtocolHandler;
+import io.netty.handler.logging.LogLevel;
+import io.netty.handler.logging.LoggingHandler;
+import io.netty.handler.ssl.*;
+import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
+import io.netty.handler.ssl.util.SelfSignedCertificate;
+
+import javax.net.ssl.KeyManagerFactory;
+import javax.net.ssl.SSLEngine;
+import javax.net.ssl.SSLException;
+import java.security.NoSuchAlgorithmException;
+import java.security.cert.CertificateException;
 
 public class RouterChannelInitializer extends ChannelInitializer<SocketChannel> {
 
@@ -17,8 +28,9 @@ public class RouterChannelInitializer extends ChannelInitializer<SocketChannel> 
     }
 
     @Override
-    protected void initChannel(SocketChannel channel) {
+    protected void initChannel(SocketChannel channel) throws SSLException, NoSuchAlgorithmException, CertificateException {
         ChannelPipeline pipeline = channel.pipeline();
+        pipeline.addLast(new LoggingHandler(LogLevel.TRACE));
         pipeline.addLast(new HttpServerCodec());
 
         // For Streaming of Continuation frames
@@ -35,6 +47,7 @@ public class RouterChannelInitializer extends ChannelInitializer<SocketChannel> 
         // pipeline.addLast(new WebSocketServerCompressionHandler());
         pipeline.addLast(new WebSocketServerProtocolHandler("/ws", null, true));
         pipeline.addLast(new WebsocketEventHandler(channelGroup));
+
         pipeline.addLast(new SlowConsumerDisconnectHandler());
     }
 }

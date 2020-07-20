@@ -1,12 +1,14 @@
 package pbouda.websocket.server;
 
+import io.netty.channel.ChannelDuplexHandler;
 import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.SimpleChannelInboundHandler;
+import io.netty.channel.ChannelPromise;
 import io.netty.channel.group.ChannelGroup;
+import io.netty.handler.codec.http.FullHttpResponse;
 import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
 import io.netty.handler.codec.http.websocketx.WebSocketServerProtocolHandler;
 
-public class WebsocketEventHandler extends SimpleChannelInboundHandler<TextWebSocketFrame> {
+public class WebsocketEventHandler extends ChannelDuplexHandler {
 
     private final ChannelGroup channelGroup;
 
@@ -18,7 +20,7 @@ public class WebsocketEventHandler extends SimpleChannelInboundHandler<TextWebSo
     public void userEventTriggered(ChannelHandlerContext context, Object event) throws Exception {
         if (event instanceof WebSocketServerProtocolHandler.HandshakeComplete) {
             channelGroup.add(context.channel());
-            System.out.println("Client connected: " + context.channel().remoteAddress());
+            System.out.println("Client connected: " + context.channel().localAddress());
 //        } else if (event instanceof IdleStateEvent) {
 //            /*
 //             * Automatic PING - PONG mechanism in WebSocket?
@@ -50,9 +52,22 @@ public class WebsocketEventHandler extends SimpleChannelInboundHandler<TextWebSo
     }
 
     @Override
-    protected void channelRead0(ChannelHandlerContext context, TextWebSocketFrame msg) {
-        context.fireChannelRead(msg.retain());
+    public void write(ChannelHandlerContext context, Object obj, ChannelPromise promise) {
+        if (obj instanceof FullHttpResponse) {
+            context.writeAndFlush(obj);
+            promise.setSuccess();
+        }
+
+        System.out.println("OUTGOING MESSAGE: " + obj);
+        if (obj instanceof String) {
+            context.writeAndFlush(new TextWebSocketFrame((String) obj));
+        }
     }
+
+    //    @Override
+//    protected void channelRead0(ChannelHandlerContext context, TextWebSocketFrame msg) {
+//        context.fireChannelRead(msg.retain());
+//    }
 
     @Override
     public void exceptionCaught(ChannelHandlerContext context, Throwable cause) {

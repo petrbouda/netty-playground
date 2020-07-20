@@ -8,12 +8,20 @@ import io.netty.handler.codec.http.websocketx.BinaryWebSocketFrame;
 import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
 
 import java.net.SocketAddress;
+import java.util.concurrent.TimeUnit;
 
 public class SlowConsumerDisconnectHandler extends ChannelOutboundHandlerAdapter {
 
     @Override
     public void write(ChannelHandlerContext context, Object obj, ChannelPromise promise) {
-        if ((obj instanceof TextWebSocketFrame) || (obj instanceof BinaryWebSocketFrame)) {
+        System.out.println("OUTGOIIIIING");
+
+//        if ((obj instanceof TextWebSocketFrame) || (obj instanceof BinaryWebSocketFrame)) {
+        if (obj instanceof String) {
+            context.executor().schedule(() -> {
+                System.out.println("Heeey");
+            }, 5, TimeUnit.SECONDS);
+
             if (context.channel().isWritable()) {
                 context.writeAndFlush(obj);
                 promise.setSuccess();
